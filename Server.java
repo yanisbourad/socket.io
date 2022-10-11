@@ -1,8 +1,10 @@
 package server;
+
 import java.net.*;
 import java.io.*;
 import java.util.Scanner;
 import java.util.regex.*;
+
 
 public class Server {
     private static ServerSocket listener;
@@ -91,9 +93,10 @@ public class Server {
         InetAddress serverIP = InetAddress.getByName(IpAddress);
         
         listener.bind(new InetSocketAddress(serverIP, serverPort));
-        System.out.format("The server is running", IpAddress, serverPort);
+        System.out.format("The server is running: /n", IpAddress, serverPort);
         try {
         	while(true) {
+        		//----------------- verifier si utilisateur existe------------        		
         		new ClientHandler(listener.accept(),clientNumber++).start();
         	}
         } finally {
@@ -105,6 +108,8 @@ public class Server {
 class ClientHandler extends Thread{
 	private Socket socket;
 	private int clientNumber;
+	private static DataOutputStream out;
+	private static DataInputStream in;
 	
 	public ClientHandler(Socket socket, int clientNumber){
 		this.socket = socket;
@@ -115,8 +120,24 @@ class ClientHandler extends Thread{
 	
 	public void run() {
 		try {
-			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+			out = new DataOutputStream(socket.getOutputStream());
+			in = new DataInputStream(socket.getInputStream());
+			//boolean deconnexion = false;
+			//do {
+			//	boolean validInfo= false;
+			//	while(validInfo == false) {
+			//	}
+			//}while (deconnexion == false);
 			out.writeUTF("Hello from server - you are client #"+ clientNumber);
+			createFile();
+			String user = "213";
+			String password = "667";
+			String user1 = "pessi";
+			String password1 = "91";
+			boolean userFound = findUser("accounts.txt", user, password);
+			addUser("accounts.txt", user1, password1);
+			
+			
 		} 
 		catch (IOException e) 
 		{
@@ -132,6 +153,63 @@ class ClientHandler extends Thread{
 		}
 		System.out.print("Connection with client#" + clientNumber + "closed");
 		}
+	}
+	
+	public static void createFile(){
+		try {
+		File file = new File("accounts.txt");
+		if (file.createNewFile()) {
+	        System.out.println("File created: " + file.getName());
+	      } else {
+	        System.out.println("File: '"+ file.getName()+"' already exists.");
+	      }} catch (IOException e) {
+	          System.out.println("An error occurred.");
+	          e.printStackTrace();
+	        }
+	}
+	
+	public static boolean findUser(String fileName, String user, String password) throws IOException {
+		boolean userFind = false;
+		File file = new File(fileName);
+	    if (file.exists()) {
+	    	Scanner fileScan = new Scanner(file);
+	    	// on lit le fichier
+	    	while(fileScan.hasNextLine()) {
+	    		String currentLine = fileScan.nextLine();
+	    		// verfier si c'est le bon utilisateur
+	    		if( currentLine.split(",")[0].equals(user)){
+	    			System.out.println("user trouvé: "+ currentLine.split(",")[0]);
+	    			// verifier si c'est le bon mot de passe
+	    			if((currentLine.split(",")[1].equals(password))) {
+	    				System.out.println("mdp trouvé: "+ currentLine.split(",")[1]);
+	    				userFind = true;
+	    			} else {
+	    				System.out.println("mot de passe erroné");
+	    			}
+	    			
+	    		}
+	    		
+	    	}
+	    	if (userFind = false) {
+	    		 //on ajoute le user
+	    		addUser(fileName,user, password);
+	    	}
+	    		
+	    }
+	    else {
+	    	createFile();
+	    }
+	    
+		
+		return userFind;
+	}
+	
+	public static void addUser(String fileName, String user, String password) throws IOException {
+		String string = user + "," + password + "\n";
+		FileWriter myWriter = new FileWriter(fileName, true);
+		myWriter.write(string);
+		System.out.println("un utilisateur a été ajouté: " +user);
+		myWriter.close();
 	}
 }
 

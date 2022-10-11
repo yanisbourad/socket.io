@@ -3,7 +3,7 @@ import java.util.Scanner;
 import java.util.regex.*;
 import java.net.*;
 import java.io.*;
-
+import java.util.HashMap;
 
 public class Client {
 	public static Socket socket; 
@@ -77,15 +77,31 @@ public class Client {
         System.out.print("Client: L'adresse ip est: " + ClientAddress + "\n");
         return ClientAddress;
     }
-   
+    
+    public static String getIdUser(Scanner reader) {
+        System.out.print("Client: entrez une nom d'utilisateur: ");
+        String idUser = reader.nextLine();
+        return idUser;
+    }
+    public static String getPasswordUser(Scanner reader) {
+        System.out.print("Client: entrez un mot de passe: ");
+        String idUser = reader.nextLine();
+        return idUser;
+    }
+    
+    
     //--------------------------------------------------------------------------------------------------------------------
     public static void main(String[] args) throws Exception {
         int clientNumber = 0;
         Scanner ClientPortScan = new Scanner(System.in);
         Scanner ClientAddressScan = new Scanner(System.in);
+        Scanner idUserScan = new Scanner(System.in);
+        Scanner passwordUserScan = new Scanner(System.in);
         int ClientPort = validPort(ClientPortScan);
         String IpAddress = validIpAddress(ClientAddressScan);
-        
+        String idUser = getIdUser(idUserScan);
+        String passwordUser = getPasswordUser(passwordUserScan);
+        //-----------------------------------------------------------------------------------------------------------------
         socket = new Socket(IpAddress, ClientPort);
         System.out.format("The server is running", IpAddress, ClientPort);
         DataInputStream in = new DataInputStream(socket.getInputStream());
