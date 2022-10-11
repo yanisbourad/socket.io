@@ -101,13 +101,19 @@ public class Client {
         String IpAddress = validIpAddress(ClientAddressScan);
         String idUser = getIdUser(idUserScan);
         String passwordUser = getPasswordUser(passwordUserScan);
+        
         //-----------------------------------------------------------------------------------------------------------------
         socket = new Socket(IpAddress, ClientPort);
         System.out.format("The server is running", IpAddress, ClientPort);
+        
         DataInputStream in = new DataInputStream(socket.getInputStream());
+        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
         
         String helloMessageFromServer = in.readUTF();
         System.out.print(helloMessageFromServer);
+        
+        out.writeUTF(idUser);
+        out.writeUTF(passwordUser);
         socket.close();
     }
 

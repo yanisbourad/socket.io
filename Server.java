@@ -129,13 +129,17 @@ class ClientHandler extends Thread{
 			//	}
 			//}while (deconnexion == false);
 			out.writeUTF("Hello from server - you are client #"+ clientNumber);
+			String userTest = in.readUTF();
+			System.out.println(userTest);
+			String passwordTest = in.readUTF();
+			System.out.println(passwordTest);
 			createFile();
-			String user = "213";
+			/*String user = "213";
 			String password = "667";
 			String user1 = "pessi";
-			String password1 = "91";
-			boolean userFound = findUser("accounts.txt", user, password);
-			addUser("accounts.txt", user1, password1);
+			String password1 = "91";*/
+			//findUser("accounts.txt", userTest, passwordTest);
+			addUser("accounts.txt", userTest, passwordTest);
 			
 			
 		} 
@@ -190,7 +194,8 @@ class ClientHandler extends Thread{
 	    		}
 	    		
 	    	}
-	    	if (userFind = false) {
+	    	fileScan.close();
+	    	if (!userFind) {
 	    		 //on ajoute le user
 	    		addUser(fileName,user, password);
 	    	}
@@ -198,6 +203,7 @@ class ClientHandler extends Thread{
 	    }
 	    else {
 	    	createFile();
+	    	
 	    }
 	    
 		
