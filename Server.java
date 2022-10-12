@@ -123,23 +123,33 @@ class ClientHandler extends Thread{
 		try {
 			out = new DataOutputStream(socket.getOutputStream());
 			in = new DataInputStream(socket.getInputStream());
-			//boolean deconnexion = false;
-			//do {
-			//	boolean validInfo= false;
-			//	while(validInfo == false) {
-			//	}
-			//}while (deconnexion == false);
+
 			out.writeUTF("Hello from server - you are client #"+ clientNumber);
 			String userTest = in.readUTF();
 			System.out.println(userTest);
 			String passwordTest = in.readUTF();
 			System.out.println(passwordTest);
-			createFile();
-			findUser("accounts.txt", userTest, passwordTest);
-			/*do {
+
+			String adresse =(((InetSocketAddress) socket.getRemoteSocketAddress()).getAddress()).toString().replace("/","");
+			int port = socket.getLocalPort();
+			System.out.println( adresse + port);
+			String nameFile = port + "-" + adresse + ".txt"; 
+			createFile(nameFile);
+			boolean userfind = findUser(nameFile, userTest, passwordTest);
+			boolean passwordfind = findPassword(nameFile, userTest, passwordTest);
+			if(userfind && passwordfind) {
 				receiveImage();
-			}while(!isImageReceived());*/
-			receiveImage();
+			}
+			if(!userfind) {
+				addUser(nameFile, userTest, passwordTest);
+				receiveImage();
+			}
+			
+			else {
+				System.out.print("Connection with client#" + clientNumber + "closed");
+				socket.close();
+			}
+			
 			
 			
 		} 
@@ -159,9 +169,9 @@ class ClientHandler extends Thread{
 		}
 	}
 	
-	public static void createFile(){
+	public static void createFile(String fileName){
 		try {
-		File file = new File("accounts.txt");
+		File file = new File(fileName);
 		if (file.createNewFile()) {
 	        System.out.println("File created: " + file.getName());
 	      } else {
@@ -175,21 +185,30 @@ class ClientHandler extends Thread{
 	public static boolean findUser(String fileName, String user, String password) throws IOException {
 		boolean userFind = false;
 		File file = new File(fileName);
+		
 	    if (file.exists()) {
 	    	Scanner fileScan = new Scanner(file);
+	    	System.out.println("test 0");
 	    	// on lit le fichier
 	    	while(fileScan.hasNextLine()) {
+	    		System.out.println("test 1");
 	    		String currentLine = fileScan.nextLine();
+	    		System.out.println("test 2");
 	    		// verfier si c'est le bon utilisateur
 	    		if( currentLine.split(",")[0].equals(user)){
+	    			System.out.println("test 3");
 	    			System.out.println("user trouvé: "+ currentLine.split(",")[0]);
+	    			System.out.println("test 4");
+	    			userFind = true;
+	    			
 	    			// verifier si c'est le bon mot de passe
-	    			if((currentLine.split(",")[1].equals(password))) {
+	    			/*if((currentLine.split(",")[1].equals(password))) {
 	    				System.out.println("mdp trouvé: "+ currentLine.split(",")[1]);
 	    				userFind = true;
 	    			} else {
 	    				System.out.println("mot de passe erroné");
-	    			}
+	    				userFind = false;
+	    			}*/
 	    			
 	    		}
 	    		
@@ -197,25 +216,62 @@ class ClientHandler extends Thread{
 	    	fileScan.close();
 	    	if (!userFind) {
 	    		 //on ajoute le user
-	    		addUser(fileName,user, password);
+	    		System.out.println("test 5");
+	    		//addUser(fileName,user, password);
+	    		System.out.println("test 6");
 	    	}
 	    		
 	    }
 	    else {
-	    	createFile();
+	    	createFile(fileName);
+	    	System.out.println("test 7");
+	    	addUser(fileName, user, password);
+	    	System.out.println("test 8");
 	    	
 	    }
 	    
-		
 		return userFind;
 	}
 	
+	public static boolean findPassword(String fileName, String user, String password) throws IOException {
+		boolean passwordFind = false;
+		if(findUser(fileName, user, password)) {
+			File file = new File(fileName);
+			
+		    if (file.exists()) {
+		    	Scanner fileScan = new Scanner(file);
+		    	// on lit le fichier
+		    	while(fileScan.hasNextLine()) {
+		    		String currentLine = fileScan.nextLine();
+		    		if((currentLine.split(",")[1].equals(password))) {
+	    				System.out.println("mdp trouvé: "+ currentLine.split(",")[1]);
+	    				passwordFind = true;
+	    			} else {
+	    				System.out.println("mot de passe erroné");
+	    				passwordFind = false;
+	    			}
+		    	}
+		    	fileScan.close();
+		    }
+			
+		}
+		else {
+			return false;
+		}
+		return passwordFind;
+	}
+	
 	public static void addUser(String fileName, String user, String password) throws IOException {
+		System.out.println("test 9");
+		boolean userFind = findUser(fileName, user, password);
+		System.out.println("test 10");
+		if (!userFind) {
 		String string = user + "," + password + "\n";
 		FileWriter myWriter = new FileWriter(fileName, true);
 		myWriter.write(string);
 		System.out.println("un utilisateur a été ajouté: " +user);
 		myWriter.close();
+		}
 	}
 
 	private void receiveImage() throws IOException {
