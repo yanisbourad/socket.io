@@ -3,7 +3,7 @@ import java.util.Scanner;
 import java.util.regex.*;
 import java.net.*;
 import java.io.*;
-import java.util.HashMap;
+
 
 public class Client {
 	public static Socket socket; 
@@ -15,7 +15,7 @@ public class Client {
     }
     
     public static int validPort(Scanner reader) {
-        Scanner ClientPortScan = new Scanner(System.in);
+
         boolean ClientPortOk = false;
         System.out.print("Client: entrez une port valide(entre 5000 et 5500): ");
         int ClientPort = reader.nextInt();
@@ -88,7 +88,56 @@ public class Client {
         String idUser = reader.nextLine();
         return idUser;
     }
-    
+    private static String getImageName (Scanner reader) {
+    	System.out.print("Client: entrez le nom de l'image ");
+        String imageName = reader.nextLine();
+        return imageName;
+    }
+    // à checker pour peut-être changer
+    private static Boolean checkImage(String nameImage) throws IOException {
+    	DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+		File image = new File(nameImage);
+		if (!image.exists()) {
+			System.out.println("L'image recherchée n'a pas été trouvée.\n");
+			//out.writeUTF("imageNotFound");
+			return false;
+		} else {
+			System.out.println("L'image recherchée a été trouvée. La transmission au serveur commence.\n");
+			//out.writeUTF("imageFound");
+			return true;
+		}
+    }
+	private static void sendImage(File img, String nameImg) throws IOException {
+		byte[] imgByte = new byte[(int)img.length()];
+		FileInputStream inputStream = new FileInputStream(img);
+		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+		inputStream.read(imgByte);
+		out.writeUTF(nameImg);
+		out.writeInt((int)img.length());
+		out.flush();
+		out.write(imgByte, 0, imgByte.length);
+		out.flush();
+		System.out.print("image envoyée");
+		inputStream.close();
+	}
+	
+	private static boolean receiveFilteredImage(String filteredImageName) throws IOException{
+		DataInputStream input = new DataInputStream(socket.getInputStream());
+		File newImage = new File(filteredImageName);		
+		FileOutputStream fileOutputStream = new FileOutputStream(newImage);
+
+		int imageBytesLength = input.readInt();
+		byte[] imageBytes = new byte[imageBytesLength];
+
+		input.readFully(imageBytes);
+		fileOutputStream.write(imageBytes, 0, imageBytes.length);
+		fileOutputStream.close();
+		
+		System.out.println("Succes, nouvelle image recue du server a l'adresse: " + newImage.getAbsolutePath());
+		DataOutputStream output = new DataOutputStream(socket.getOutputStream());
+		output.writeUTF("imageReceivedSToC");
+		return true;
+	}
     
     //--------------------------------------------------------------------------------------------------------------------
     public static void main(String[] args) throws Exception {
@@ -114,6 +163,35 @@ public class Client {
         
         out.writeUTF(idUser);
         out.writeUTF(passwordUser);
+        
+        boolean imageNameChecked = false;
+        String imageName = "";
+        Scanner imageNameScan = new Scanner(System.in);
+        String reponse = "";
+        boolean goodFile = false;
+        do{
+        	do {
+        	imageName = getImageName(imageNameScan);
+        	imageNameChecked = checkImage(imageName);
+        }while(imageNameChecked == false); 
+        	
+        System.out.println("Nom fichier: " + imageName + " a été trouvé, voulez-vous l'envoyer? (Y/N)");
+        Scanner verifScan = new Scanner(System.in);
+        reponse = verifScan.nextLine();
+        if (reponse.equals("Y") || reponse.equals("y")) {
+        	goodFile = true;
+        }
+        } while(goodFile == false);
+        
+        File imageToSend = new File(imageName);
+        sendImage(imageToSend,imageName);
+        System.out.println("kkk sa marche");
+    
+        
+        String[] fileNameSplit = imageName.split("\\.");
+        String newName = fileNameSplit[0] + "-traité.jpeg";
+        boolean test = receiveFilteredImage(newName);
+        System.out.println(test);
         socket.close();
     }
 

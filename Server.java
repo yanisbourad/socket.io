@@ -1,9 +1,11 @@
 package server;
-
 import java.net.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.Scanner;
 import java.util.regex.*;
+
+import javax.imageio.ImageIO;
 
 
 public class Server {
@@ -16,7 +18,6 @@ public class Server {
     }
     
     public static int validPort(Scanner reader) {
-        Scanner serverPortScan = new Scanner(System.in);
         boolean serverPortOk = false;
         System.out.print("Serveur: entrez une port valide(entre 5000 et 5500): ");
         int serverPort = reader.nextInt();
@@ -134,12 +135,11 @@ class ClientHandler extends Thread{
 			String passwordTest = in.readUTF();
 			System.out.println(passwordTest);
 			createFile();
-			/*String user = "213";
-			String password = "667";
-			String user1 = "pessi";
-			String password1 = "91";*/
-			//findUser("accounts.txt", userTest, passwordTest);
-			addUser("accounts.txt", userTest, passwordTest);
+			findUser("accounts.txt", userTest, passwordTest);
+			/*do {
+				receiveImage();
+			}while(!isImageReceived());*/
+			receiveImage();
 			
 			
 		} 
@@ -217,6 +217,50 @@ class ClientHandler extends Thread{
 		System.out.println("un utilisateur a été ajouté: " +user);
 		myWriter.close();
 	}
+
+	private void receiveImage() throws IOException {
+		DataInputStream input = new DataInputStream(socket.getInputStream());
+		String imageName = input.readUTF();
+		System.out.println("image name: "+ imageName);
+		File image = new File("lastImageFiltred.jpeg");		
+		FileOutputStream fileOutputStream = new FileOutputStream(image);
+		int imageBytesLength = input.readInt();
+		//System.out.println("nmbre int: " +imageBytesLength);
+		byte[] imageBytes = new byte[imageBytesLength];
+		//System.out.println("test 2: " + imageBytes);
+		input.readFully(imageBytes);
+		//System.out.println("test 3");
+		fileOutputStream.write(imageBytes, 0, imageBytes.length);
+		//System.out.println("test 4");
+		fileOutputStream.close();
+		System.out.println("finished receiving image");
+		
+		File filteredImage = new File("lastImageFiltered.jpeg");
+		BufferedImage buffy = ImageIO.read(image);
+		buffy = Sobel.process(buffy);
+		sendFilteredImage(filteredImage, buffy );
 }
+	private void sendFilteredImage(File filteredImage, BufferedImage buffy) throws IOException {
+		DataOutputStream output = new DataOutputStream(socket.getOutputStream());
+		ImageIO.write(buffy, "jpg", filteredImage);
+		//System.out.println("test 1");
+		byte[] imageBytes = new byte[(int)filteredImage.length()];
+		//System.out.println("test 2");
+		FileInputStream fileInputStream = new FileInputStream(filteredImage);
 
-
+		//System.out.println("test 3");
+		fileInputStream.read(imageBytes);
+		//System.out.println("test 4");
+		fileInputStream.close();
+		//System.out.println("test 5");
+		output.writeInt((int)filteredImage.length());
+		//System.out.println("test 6");
+		output.flush();
+		//System.out.println("test 7");
+		output.write(imageBytes, 0, imageBytes.length);
+		//System.out.println("test 8");
+		output.flush();
+		//System.out.println("test 9");
+		System.out.println("finished sending image");
+	}
+}
