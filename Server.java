@@ -19,7 +19,7 @@ public class Server {
     
     public static int validPort(Scanner reader) {
         boolean serverPortOk = false;
-        System.out.print("Serveur: entrez une port valide(entre 5000 et 5500): ");
+        System.out.print("Server: enter a valid port(between 5000 and 5500): ");
         int serverPort = reader.nextInt();
         do{
 
@@ -27,7 +27,7 @@ public class Server {
          	   serverPortOk = true;
                 
             } else{
-                System.out.print("Serveur: Une erreur est survenu, entrez un port valide(entre 5000 et 5500): ");
+                System.out.print("Server: an error has occurred, enter a valid port(between 5000 and 5500): ");
                 serverPort = reader.nextInt();
                 serverPortOk = false;
             }
@@ -62,7 +62,7 @@ public class Server {
     public static String validIpAddress(Scanner reader){
         
         boolean serverAddressOk = false;
-        System.out.print("Serveur: entrez une adresse ip valide: ");
+        System.out.print("Server: enter a valid ip address: ");
         String serverAddress = reader.nextLine();
         do{
 
@@ -70,13 +70,13 @@ public class Server {
                 serverAddressOk = true;
                 
             } else{
-                System.out.print("Serveur: Une erreur est survenu, entrez une adresse ip valide: ");
+                System.out.print("Server: an error has occurred, enter a valid ip address: ");
                  serverAddress = reader.nextLine();
         		 serverAddressOk = false;
             }
             
         }while(serverAddressOk == false);
-        System.out.print("Serveur: L'adresse ip est: " + serverAddress + "\n");
+        System.out.print("Server: Ip address is: " + serverAddress + "\n");
         return serverAddress;
     }
     //--------------------------------------------------------------------------------------------------------------------
@@ -94,7 +94,7 @@ public class Server {
         InetAddress serverIP = InetAddress.getByName(IpAddress);
         
         listener.bind(new InetSocketAddress(serverIP, serverPort));
-        System.out.format("The server is running: /n", IpAddress, serverPort);
+        System.out.format("The server is running: /n", IpAddress, serverPort, "\n");
         try {
         	while(true) {
         		//----------------- verifier si utilisateur existe------------        		
@@ -109,63 +109,66 @@ public class Server {
 class ClientHandler extends Thread{
 	private Socket socket;
 	private int clientNumber;
-	private static DataOutputStream out;
-	private static DataInputStream in;
 	
 	public ClientHandler(Socket socket, int clientNumber){
 		this.socket = socket;
 		this.clientNumber = clientNumber;
-		System.out.print("new connection with client#" + clientNumber + "at"+ socket);
+		System.out.print("Server: new connection with client#" + clientNumber + "at"+ socket);
 		
 	}
 	
 	public void run() {
 		try {
-			out = new DataOutputStream(socket.getOutputStream());
-			in = new DataInputStream(socket.getInputStream());
+			// creer un channel pour envoyer un message que la connexion au serveur OK
+			DataOutputStream helloMessage = new DataOutputStream(socket.getOutputStream());
+			// creer un channel pour recevoir les informations du client
+			DataInputStream connexionInformation = new DataInputStream(socket.getInputStream());
 
-			out.writeUTF("Hello from server - you are client #"+ clientNumber);
-			String userTest = in.readUTF();
-			System.out.println(userTest);
-			String passwordTest = in.readUTF();
-			System.out.println(passwordTest);
-
+			helloMessage.writeUTF("Hello from server - you are client #"+ clientNumber + "\n");
+			String clientUsername = connexionInformation.readUTF();
+			//System.out.println(clientUsername);
+			String clientPassword = connexionInformation.readUTF();
+			//System.out.println(clientPassword);
+			
 			String adresse =(((InetSocketAddress) socket.getRemoteSocketAddress()).getAddress()).toString().replace("/","");
 			int port = socket.getLocalPort();
-			System.out.println( adresse + port);
+			//System.out.println( adresse + port);
 			String nameFile = port + "-" + adresse + ".txt"; 
 			createFile(nameFile);
-			boolean userfind = findUser(nameFile, userTest, passwordTest);
-			boolean passwordfind = findPassword(nameFile, userTest, passwordTest);
+			boolean userfind = findUser(nameFile, clientUsername, clientPassword);
+			boolean passwordfind = findPassword(nameFile, clientUsername, clientPassword);
+			// cree un channel pour prevenir le client si la connexion a été un succès ou pas
+			DataOutputStream connexionMessage = new DataOutputStream(socket.getOutputStream());
 			if(userfind && passwordfind) {
+				connexionMessage.writeBoolean(true);
 				receiveImage();
 			}
-			if(!userfind) {
-				addUser(nameFile, userTest, passwordTest);
+			else if(!userfind) {
+				connexionMessage.writeBoolean(true);
+				addUser(nameFile, clientUsername, clientPassword);
 				receiveImage();
 			}
 			
-			else {
-				System.out.print("Connection with client#" + clientNumber + "closed");
+			else if (userfind && !passwordfind) {
+				connexionMessage.writeBoolean(false);
 				socket.close();
+				return;
 			}
-			
-			
-			
+
+			socket.close();
+				
 		} 
-		catch (IOException e) 
-		{
-			System.out.print("Error handling client#" + clientNumber + ":" + e);
+		catch (IOException e) {
+			System.out.print("Server: Error handling client#" + clientNumber + ":" + e);
 		}
-		finally 
-		{
+		finally {
 			try {
 				socket.close();
 				}
 			catch (IOException e) {
-			System.out.print("Could not close a socket");
+			System.out.print("Server: Could not close a socket");
 		}
-		System.out.print("Connection with client#" + clientNumber + "closed");
+		System.out.print("Server: Connection with client#" + clientNumber + "closed");
 		}
 	}
 	
@@ -173,11 +176,11 @@ class ClientHandler extends Thread{
 		try {
 		File file = new File(fileName);
 		if (file.createNewFile()) {
-	        System.out.println("File created: " + file.getName());
+	        System.out.println("Server: File created: " + file.getName());
 	      } else {
-	        System.out.println("File: '"+ file.getName()+"' already exists.");
+	        //System.out.println("File: '"+ file.getName()+"' already exists.");
 	      }} catch (IOException e) {
-	          System.out.println("An error occurred.");
+	          System.out.println("Server: An error occurred.");
 	          e.printStackTrace();
 	        }
 	}
@@ -188,45 +191,31 @@ class ClientHandler extends Thread{
 		
 	    if (file.exists()) {
 	    	Scanner fileScan = new Scanner(file);
-	    	System.out.println("test 0");
+	    	//System.out.println("test 0");
 	    	// on lit le fichier
 	    	while(fileScan.hasNextLine()) {
-	    		System.out.println("test 1");
+	    		//System.out.println("test 1");
 	    		String currentLine = fileScan.nextLine();
-	    		System.out.println("test 2");
+	    		//System.out.println("test 2");
 	    		// verfier si c'est le bon utilisateur
 	    		if( currentLine.split(",")[0].equals(user)){
-	    			System.out.println("test 3");
-	    			System.out.println("user trouvé: "+ currentLine.split(",")[0]);
-	    			System.out.println("test 4");
+	    			//System.out.println("test 3");
+	    			//System.out.println("user trouvé: "+ currentLine.split(",")[0]);
+	    			//System.out.println("test 4");
 	    			userFind = true;
 	    			
-	    			// verifier si c'est le bon mot de passe
-	    			/*if((currentLine.split(",")[1].equals(password))) {
-	    				System.out.println("mdp trouvé: "+ currentLine.split(",")[1]);
-	    				userFind = true;
-	    			} else {
-	    				System.out.println("mot de passe erroné");
-	    				userFind = false;
-	    			}*/
 	    			
 	    		}
 	    		
 	    	}
 	    	fileScan.close();
-	    	if (!userFind) {
-	    		 //on ajoute le user
-	    		System.out.println("test 5");
-	    		//addUser(fileName,user, password);
-	    		System.out.println("test 6");
-	    	}
-	    		
+    		
 	    }
 	    else {
 	    	createFile(fileName);
-	    	System.out.println("test 7");
+	    	//System.out.println("test 7");
 	    	addUser(fileName, user, password);
-	    	System.out.println("test 8");
+	    	//System.out.println("test 8");
 	    	
 	    }
 	    
@@ -244,10 +233,10 @@ class ClientHandler extends Thread{
 		    	while(fileScan.hasNextLine()) {
 		    		String currentLine = fileScan.nextLine();
 		    		if((currentLine.split(",")[1].equals(password))) {
-	    				System.out.println("mdp trouvé: "+ currentLine.split(",")[1]);
+	    				//System.out.println("mdp trouvé: "+ currentLine.split(",")[1]);
 	    				passwordFind = true;
 	    			} else {
-	    				System.out.println("mot de passe erroné");
+	    				//System.out.println("mot de passe erroné");
 	    				passwordFind = false;
 	    			}
 		    	}
@@ -262,36 +251,37 @@ class ClientHandler extends Thread{
 	}
 	
 	public static void addUser(String fileName, String user, String password) throws IOException {
-		System.out.println("test 9");
+		//System.out.println("test 9");
 		boolean userFind = findUser(fileName, user, password);
-		System.out.println("test 10");
+		//System.out.println("test 10");
 		if (!userFind) {
 		String string = user + "," + password + "\n";
 		FileWriter myWriter = new FileWriter(fileName, true);
 		myWriter.write(string);
-		System.out.println("un utilisateur a été ajouté: " +user);
+		System.out.println("Server: new user added in the file: " +user);
 		myWriter.close();
 		}
 	}
 
 	private void receiveImage() throws IOException {
-		DataInputStream input = new DataInputStream(socket.getInputStream());
-		String imageName = input.readUTF();
-		System.out.println("image name: "+ imageName);
+		// on cree un channel pour recevoir l'image et ses informations
+		DataInputStream imageReception = new DataInputStream(socket.getInputStream());
+		String imageName = imageReception.readUTF();
+		//System.out.println("image name: "+ imageName);
 		File image = new File("lastImageFiltred.jpeg");		
 		FileOutputStream fileOutputStream = new FileOutputStream(image);
-		int imageBytesLength = input.readInt();
+		int imageBytesLength = imageReception.readInt();
 		//System.out.println("nmbre int: " +imageBytesLength);
 		byte[] imageBytes = new byte[imageBytesLength];
 		//System.out.println("test 2: " + imageBytes);
-		input.readFully(imageBytes);
+		imageReception.readFully(imageBytes);
 		//System.out.println("test 3");
 		fileOutputStream.write(imageBytes, 0, imageBytes.length);
 		//System.out.println("test 4");
 		fileOutputStream.close();
-		System.out.println("finished receiving image");
+		System.out.println("Server: '"+ imageName+ "' received");
 		
-		File filteredImage = new File("lastImageFiltered.jpeg");
+		File filteredImage = new File("lastImageFiltred.jpeg");
 		BufferedImage buffy = ImageIO.read(image);
 		buffy = Sobel.process(buffy);
 		sendFilteredImage(filteredImage, buffy );
@@ -317,6 +307,7 @@ class ClientHandler extends Thread{
 		//System.out.println("test 8");
 		output.flush();
 		//System.out.println("test 9");
-		System.out.println("finished sending image");
+		System.out.println("Server: image sended");
 	}
+
 }
