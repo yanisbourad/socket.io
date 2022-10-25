@@ -69,7 +69,7 @@ public class Client {
         
         String[] fileNameSplit = imageName.split("\\.");
         String newName = fileNameSplit[0] + "-traité.jpeg";
-        boolean test = receiveFilteredImage(newName);
+        //boolean test = receiveFilteredImage(newName);
         //System.out.println(test);
 
         System.out.println("Client: I disconnect...");
