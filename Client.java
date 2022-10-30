@@ -1,4 +1,4 @@
-package server;
+
 import java.util.Scanner;
 import java.util.regex.*;
 import java.net.*;
@@ -51,26 +51,23 @@ public class Client {
         }while(imageNameChecked == false); 
         	
         System.out.println("Client: File name: " + imageName + " found, do you want to send it? (Y/N)");
-        Scanner verifScan = new Scanner(System.in);
+		@SuppressWarnings("resource")
+		Scanner verifScan = new Scanner(System.in);
 			reponse = verifScan.nextLine();
 		
         if (reponse.equals("Y") || reponse.equals("y")) {
         	goodFile = true;
         }else {
         	goodFile = false;
-        	//verifScan.nextLine();
         }
         } while(goodFile == false);
-        
         File imageToSend = new File(imageName);
         sendImage(imageToSend,imageName);
-        //System.out.println("kkk sa marche");
     
         
         String[] fileNameSplit = imageName.split("\\.");
         String newName = fileNameSplit[0] + "-traité.jpeg";
-        //boolean test = receiveFilteredImage(newName);
-        //System.out.println(test);
+        receiveFilteredImage(newName);
 
         System.out.println("Client: I disconnect...");
         socket.close();
@@ -144,7 +141,6 @@ public class Client {
             }
             
         }while(ClientAddressOk == false);
-        //System.out.print("Client: L'adresse ip est: " + ClientAddress + "\n");
         return ClientAddress;
     }
     
@@ -179,27 +175,31 @@ public class Client {
     }
 	private static void sendImage(File img, String nameImg) throws IOException {
 		byte[] imgByte = new byte[(int)img.length()];
-		FileInputStream inputStream = new FileInputStream(img);
-		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-		inputStream.read(imgByte);
-		out.writeUTF(nameImg);
-		out.writeInt((int)img.length());
-		out.flush();
-		out.write(imgByte, 0, imgByte.length);
-		out.flush();
+		//On crée un channel pour recevoir l'image que le client a dans ses fichiers
+		FileInputStream inputFile = new FileInputStream(img);
+		//On crée un channel pour envoyer l'image au serveur
+		DataOutputStream outImage = new DataOutputStream(socket.getOutputStream());
+		//inspiré de https://www.codegrepper.com/code-examples/java/java+send+an+image+over+a+socket
+		inputFile.read(imgByte);
+		outImage.writeUTF(nameImg);
+		outImage.writeInt((int)img.length());
+		outImage.flush();
+		outImage.write(imgByte, 0, imgByte.length);
+		outImage.flush();
 		System.out.print("Client: image sent successfully");
-		inputStream.close();
+		inputFile.close();
 	}
 	
 	private static boolean receiveFilteredImage(String filteredImageName) throws IOException{
-		DataInputStream input = new DataInputStream(socket.getInputStream());
+		//On crée un channel pour recevoir l'image filtré
+		DataInputStream inputImage = new DataInputStream(socket.getInputStream());
 		File newImage = new File(filteredImageName);		
 		FileOutputStream fileOutputStream = new FileOutputStream(newImage);
 
-		int imageBytesLength = input.readInt();
+		int imageBytesLength = inputImage.readInt();
 		byte[] imageBytes = new byte[imageBytesLength];
 
-		input.readFully(imageBytes);
+		inputImage.readFully(imageBytes);
 		fileOutputStream.write(imageBytes, 0, imageBytes.length);
 		fileOutputStream.close();
 		
